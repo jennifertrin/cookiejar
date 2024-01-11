@@ -4,8 +4,10 @@ use ic_cdk::{query, update};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use ethers_core::types::H160;
-use hex::decode;
-use std::sync::{Mutex};
+use hex::{decode, FromHex};
+use std::sync::Mutex;
+use siwe::{Message, TimeStamp, VerificationOpts};
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 #[derive(CandidType, Serialize, Debug)]
 struct EthereumAddressReply {
@@ -137,6 +139,36 @@ async fn sign(message: String) -> Result<SignatureReply, String> {
     })
 }
 
+#[update]
+async fn verify_claim(address: String, signature: String, string_message: String, current_timestamp: String, nonce: String) -> Result<SignatureVerificationReply, String> {
+    if !valid_to_pay(address.clone()) {
+        return Err("Not ready for payment".to_string());
+    }
+
+    let raw_string_literal = format!(r#"{}"#, string_message);
+
+    let message: Message = raw_string_literal.parse().unwrap();
+
+    let raw_signature = format!(r#"{}"#, signature);
+
+    let signature_hex = <[u8; 65]>::from_hex(raw_signature).unwrap();
+
+    let verification_opts = VerificationOpts {
+        domain: Some("127.0.0.1:4943".parse().unwrap()),
+        nonce: Some(nonce.into()),
+        timestamp: Some(OffsetDateTime::parse(current_timestamp.as_str(), &Rfc3339).unwrap()),
+        ..Default::default()
+    };
+
+    let is_signature_valid = message.verify(&signature_hex, &verification_opts).await
+        .map_err(|_| String::from("Signature verification failed"))
+        .is_ok();
+
+    Ok(SignatureVerificationReply{
+        is_signature_valid
+    })
+}
+
 #[query]
 async fn verify(
     signature_hex: String,
@@ -209,6 +241,18 @@ fn hex_string_to_ethereum_address(public_key_hex: &str) -> String {
     let address = H160::from_slice(address_bytes);
 
     format!("0x{:x}", address)
+}
+
+fn valid_to_pay(address: String) -> bool {
+    let addresses = ADDRESSES.lock().unwrap();
+    let address_str: &str = &address;
+    
+    for entry in addresses.iter() {
+        if entry.ethereum_address == address_str && !entry.received_payout  {
+            return true
+        }
+    }
+    false
 }
 
 ic_cdk::export_candid!();

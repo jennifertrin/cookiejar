@@ -15,4 +15,5 @@ service : {
   is_address_listed : (text) -> (bool) query;
   sign : (text) -> (Result_1);
   verify : (text, text, text) -> (Result_2) query;
+  verify_claim : (text, text, text, text, text) -> (Result_2);
 }

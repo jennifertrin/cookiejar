@@ -21,6 +21,11 @@ export interface _SERVICE {
   >,
   'ethereum_address' : ActorMethod<[], Result>,
   'get_addresses' : ActorMethod<[], Array<ListOfAddresses>>,
+  'is_address_listed' : ActorMethod<[string], boolean>,
   'sign' : ActorMethod<[string], Result_1>,
   'verify' : ActorMethod<[string, string, string], Result_2>,
+  'verify_claim' : ActorMethod<
+    [string, string, string, string, string],
+    Result_2
+  >,
 }
