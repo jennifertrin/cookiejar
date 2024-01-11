@@ -81,6 +81,19 @@ async fn get_addresses() -> Vec<ListOfAddresses> {
     ADDRESSES.lock().unwrap().clone()
 }
 
+#[query]
+async fn is_address_listed(checked_address: String) -> bool {
+    let addresses = ADDRESSES.lock().unwrap();
+
+    for address_entry in addresses.iter() {
+        if address_entry.ethereum_address == checked_address {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 #[update]
 async fn ethereum_address() -> Result<EthereumAddressReply, String> {
     let request = ECDSAPublicKey {

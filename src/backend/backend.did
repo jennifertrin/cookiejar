@@ -12,6 +12,7 @@ service : {
   add_addresses : (vec ListOfAddresses) -> (vec ListOfAddresses);
   ethereum_address : () -> (Result);
   get_addresses : () -> (vec ListOfAddresses) query;
+  is_address_listed : (text) -> (bool) query;
   sign : (text) -> (Result_1);
   verify : (text, text, text) -> (Result_2) query;
 }
