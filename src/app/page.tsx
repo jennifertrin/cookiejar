@@ -1,6 +1,8 @@
 "use client"
 
+import ConnectButton from "@/components/ConnectButton";
 import Form from "@/components/Form";
+import InternetIdentity from "@/components/InternetIdentity";
 import { useState } from "react";
 
 export default function Home() {
@@ -9,8 +11,10 @@ export default function Home() {
 
   return (
     <div className="hero mt-10 flex flex-col gap-6">
-      <div className="hero-content flex-col lg:flex-row">
+      <div className="hero-content flex-col lg:flex-row gap-4">
         <div>
+          <ConnectButton />
+          <InternetIdentity />
           <h1 className="text-5xl font-bold">Cookie Jar 🍪</h1>
           <p className="py-6">Create a pool of capital or &ldquo;cookie jar&rdquo; for a pre-defined list of teams/individuals and allowing them to draw from the pool after self-reporting</p>
           <button className="btn btn-primary" onClick={() => setOpen(!open)}>Create a Cookie Jar</button>

@@ -2,7 +2,6 @@ export const idlFactory = ({ IDL }) => {
   const ListOfAddresses = IDL.Record({
     'ethereum_address' : IDL.Text,
     'received_payout' : IDL.Bool,
-
   });
   const EthereumAddressReply = IDL.Record({ 'ethereum_address' : IDL.Text });
   const Result = IDL.Variant({ 'Ok' : EthereumAddressReply, 'Err' : IDL.Text });

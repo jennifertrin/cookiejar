@@ -41,12 +41,12 @@ export default function ClaimButton() {
     }, [address])
 
 
-    const message = `127.0.0.1:4943 wants you to sign in with your Ethereum account:
+    const message = `localhost:4943 wants you to sign in with your Ethereum account:
     ${address}
     
     Cookie Jar
     
-    URI: 127.0.0.1:4943
+    URI: localhost:4943
     Version: 1
     Chain ID: 11155111
     Nonce: ${nonce}
