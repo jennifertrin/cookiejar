@@ -5,13 +5,23 @@
         "frontend": {
           "entrypoint": "out/index.html"
         },
-        "source": ["out"],
+        "source": ["out", "src/assets"],
         "type": "assets"
       },
       "backend": {
         "candid": "src/backend/backend.did",
         "package": "backend",
         "type": "rust"
+      },
+      "internet_identity" : {
+        "type": "pull",
+        "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
       }
-    }
+    },
+    "networks": {
+      "local": {
+          "bind": "localhost:4943",
+          "type": "ephemeral"
+      }
+  }
 }

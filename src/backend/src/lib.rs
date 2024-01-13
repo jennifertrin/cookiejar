@@ -6,7 +6,7 @@ use std::str::FromStr;
 use ethers_core::types::H160;
 use hex::{decode, FromHex};
 use std::sync::Mutex;
-use siwe::{Message, TimeStamp, VerificationOpts};
+use siwe::{Message, VerificationOpts};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 #[derive(CandidType, Serialize, Debug)]
@@ -154,7 +154,7 @@ async fn verify_claim(address: String, signature: String, string_message: String
     let signature_hex = <[u8; 65]>::from_hex(raw_signature).unwrap();
 
     let verification_opts = VerificationOpts {
-        domain: Some("127.0.0.1:4943".parse().unwrap()),
+        domain: Some("localhost:4943".parse().unwrap()),
         nonce: Some(nonce.into()),
         timestamp: Some(OffsetDateTime::parse(current_timestamp.as_str(), &Rfc3339).unwrap()),
         ..Default::default()
