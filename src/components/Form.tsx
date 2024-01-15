@@ -96,6 +96,8 @@ function convertToObjects(ethereumAddresses: string[]): ListOfAddresses[] {
     ethereumAddresses.forEach((address: string) => {
       const addressObject: ListOfAddresses = {
         ethereum_address: address,
+        github_link: [],
+        verified_github: false,
         received_payout: false 
       };
       resultArray.push(addressObject);

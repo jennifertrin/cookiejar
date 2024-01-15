@@ -3,7 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 import Web3 from 'web3'
 
-export default function ClaimButton() {
+interface ClaimButtonProps {
+    githubLink: string,
+}
+
+export default function ClaimButton({ githubLink }: ClaimButtonProps) {
     const [nonce, setNonce] = useState<string | undefined>();
 
     const { address } = useAccount();
@@ -62,11 +66,25 @@ export default function ClaimButton() {
     async function claim() {
         if (!message || !address || !nonce) return;
         const signature = await signMessageAsync();
-        const result = await backend.verify_claim(address, signature, message, currentDateTime, nonce);
-        return result;
+        const repoResult = await extractOwnerAndRepo(githubLink);
+        if (repoResult) {
+            const result = await backend.verify_signature_and_repo(repoResult?.owner, repoResult?.repoName, address, message, signature);
+            console.log('result', result)
+            return result;
+        }
     }
 
     return (
         <button className="btn btn-info" onClick={() => claim()}>Claim from Cookie Jar</button>
     );
 };
+
+function extractOwnerAndRepo(githubLink: string): { owner: string; repoName: string } | null {
+    const regex = /https:\/\/github\.com\/([^\/]+)\/([^\/]+)/;
+    const match = githubLink.match(regex);
+
+    if (!match) return null;
+
+    const [_, owner, repoName] = match;
+    return { owner, repoName };
+}

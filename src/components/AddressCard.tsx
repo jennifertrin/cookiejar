@@ -1,5 +1,7 @@
-import React from 'react';
-import ClaimButton from './ClaimButton';
+import React, { useState } from 'react';
+import { useAccount } from 'wagmi'
+import ConnectButton from './ConnectButton';
+import InitiateClaim from './InitiateClaim';
 
 interface AddressCardProps {
     ethereum_address: string;
@@ -7,6 +9,9 @@ interface AddressCardProps {
 }
 
 export default function AddressCard({ ethereum_address, listOfAddresses }: AddressCardProps) {
+    const [open, setOpen] = useState<boolean>(false);
+    const { address } = useAccount();
+
     return (
         <div className="card w-full bg-primary text-primary-content flex flex-col">
             <div className="card w-full bg-primary text-primary-content">
@@ -25,8 +30,8 @@ export default function AddressCard({ ethereum_address, listOfAddresses }: Addre
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col w-1/2 pr-5 ml-auto mb-4">
-                <ClaimButton />
+            <div className="flex flex-col w-full pr-5 ml-auto mb-4">
+                {address ? <InitiateClaim open={open} setOpen={setOpen} /> : <ConnectButton />}
             </div>
         </div>
     );
