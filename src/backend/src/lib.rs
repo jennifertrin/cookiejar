@@ -1,13 +1,14 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use ic_cdk::{query, update};
-use std::convert::TryFrom;
 use std::str::FromStr;
-use ethers_core::types::H160;
-use hex::{decode, FromHex};
+use ethers_core::types::{Address, RecoveryMessage, Signature, H160};
+use hex::decode;
 use std::sync::Mutex;
-use siwe::{Message, VerificationOpts};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use ic_cdk::api::management_canister::http_request::{
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod
+};
+use serde_json::Value;
 
 #[derive(CandidType, Serialize, Debug)]
 struct EthereumAddressReply {
@@ -66,7 +67,15 @@ pub enum EcdsaCurve {
 #[derive(CandidType, Deserialize, Debug, Clone)]
 struct ListOfAddresses {
     ethereum_address: String,
+    github_link: Option<String>,
+    verified_github: bool,
     received_payout: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GitHub {
+    owner: String,
+    repo: String,
 }
 
 static ADDRESSES: Mutex<Vec<ListOfAddresses>> = Mutex::new(Vec::new());
@@ -93,6 +102,24 @@ async fn is_address_listed(checked_address: String) -> bool {
         }
     }
     return false;
+}
+
+#[update]
+async fn update_addresses(
+    ethereum_address: String,
+    github_link: Option<String>,
+    verified_github: bool,
+    received_payout: bool,
+) -> Vec<ListOfAddresses> {
+    let mut addresses = ADDRESSES.lock().unwrap();
+
+    if let Some(index) = find_address_index(ethereum_address, &addresses) {
+        addresses[index].github_link = github_link;
+        addresses[index].verified_github = verified_github;
+        addresses[index].received_payout = received_payout;
+    }
+    
+    addresses.clone()
 }
 
 
@@ -140,56 +167,83 @@ async fn sign(message: String) -> Result<SignatureReply, String> {
 }
 
 #[update]
-async fn verify_claim(address: String, signature: String, string_message: String, current_timestamp: String, nonce: String) -> Result<SignatureVerificationReply, String> {
-    if !valid_to_pay(address.clone()) {
-        return Err("Not ready for payment".to_string());
+async fn verify_signature_and_repo(owner: String, repo: String, eth_address: String, message: String, signature: String) -> Result<bool, String> {
+    let is_signature_valid = verify_ecdsa(eth_address.clone(), message.clone(), signature.clone()).await;
+
+    if !is_signature_valid {
+        return Err("Invalid signature".to_string());
     }
 
-    let raw_string_literal = format!(r#"{}"#, string_message);
+    let is_repo_verified = get_public_repo_verification(owner.clone(), repo.clone()).await;
 
-    let message: Message = raw_string_literal.parse().unwrap();
+    if is_repo_verified.is_ok() {
+        match update_addresses(
+            eth_address.clone(),
+            Some(format!("https://github.com/{}/{}", owner, repo)),
+            true,
+            false,
+        ).await {
+            _ => {}
+        }
+    }
 
-    let raw_signature = format!(r#"{}"#, signature);
-
-    let signature_hex = <[u8; 65]>::from_hex(raw_signature).unwrap();
-
-    let verification_opts = VerificationOpts {
-        domain: Some("localhost:4943".parse().unwrap()),
-        nonce: Some(nonce.into()),
-        timestamp: Some(OffsetDateTime::parse(current_timestamp.as_str(), &Rfc3339).unwrap()),
-        ..Default::default()
-    };
-
-    let is_signature_valid = message.verify(&signature_hex, &verification_opts).await
-        .map_err(|_| String::from("Signature verification failed"))
-        .is_ok();
-
-    Ok(SignatureVerificationReply{
-        is_signature_valid
-    })
+    is_repo_verified
 }
 
+
 #[query]
-async fn verify(
-    signature_hex: String,
-    message: String,
-    public_key_hex: String,
-) -> Result<SignatureVerificationReply, String> {
-    let signature_bytes = hex::decode(&signature_hex).expect("failed to hex-decode signature");
-    let pubkey_bytes = hex::decode(&public_key_hex).expect("failed to hex-decode public key");
-    let message_bytes = message.as_bytes();
+async fn verify_ecdsa(eth_address: String, message: String, signature: String) -> bool {
+    Signature::from_str(&signature)
+        .unwrap()
+        .verify(
+            RecoveryMessage::Data(message.into_bytes()),
+            Address::from_str(&eth_address).unwrap(),
+        )
+        .is_ok()
+}
 
-    use k256::ecdsa::signature::Verifier;
-    let signature = k256::ecdsa::Signature::try_from(signature_bytes.as_slice())
-        .expect("failed to deserialize signature");
-    let is_signature_valid= k256::ecdsa::VerifyingKey::from_sec1_bytes(&pubkey_bytes)
-        .expect("failed to deserialize sec1 encoding into public key")
-        .verify(message_bytes, &signature)
-        .is_ok();
+#[update]
+async fn get_public_repo_verification(owner: String, repo: String) -> Result<bool, String> {
+    let url = format!(
+        "https://api.github.com/repos/{}/{}",
+        owner,
+        repo
+    );
 
-    Ok(SignatureVerificationReply{
-        is_signature_valid
-    })
+    let request_headers = vec![
+        HttpHeader {
+            name: "X-GitHub-Api-Version".to_string(),
+            value: "2022-11-28".to_string(),
+        },
+    ];
+
+    let request = CanisterHttpRequestArgument {
+        url: url.to_string(),
+        method: HttpMethod::GET,
+        body: None, 
+        max_response_bytes: None, 
+        transform: None,
+        headers: request_headers,
+    };
+
+    match http_request(request,1_700_000_000).await {
+        Ok((response,)) => {
+            let str_body = String::from_utf8(response.body)
+                .expect("Transformed response is not UTF-8 encoded.");
+            if let Ok(parsed_json) = serde_json::from_str::<Value>(&str_body) {
+                if let Some(private) = parsed_json.get("private").and_then(|v| v.as_bool()) {
+                    if private {
+                      return Ok(false)
+                    } return Ok(true)
+                }
+            }
+            return Ok(false)
+        }
+        Err((r, m)) => {
+            let message = format!("The http_request resulted in an error. RejectionCode: {r:?}, Error: {m}");
+            return Err(message);
+        }
+    }
 }
 
 fn mgmt_canister_id() -> CanisterId {
@@ -243,16 +297,8 @@ fn hex_string_to_ethereum_address(public_key_hex: &str) -> String {
     format!("0x{:x}", address)
 }
 
-fn valid_to_pay(address: String) -> bool {
-    let addresses = ADDRESSES.lock().unwrap();
-    let address_str: &str = &address;
-    
-    for entry in addresses.iter() {
-        if entry.ethereum_address == address_str && !entry.received_payout  {
-            return true
-        }
-    }
-    false
+fn find_address_index(ethereum_address: String, addresses: &Vec<ListOfAddresses>) -> Option<usize> {
+    addresses.iter().position(|addr| addr.ethereum_address == ethereum_address)
 }
 
 ic_cdk::export_candid!();

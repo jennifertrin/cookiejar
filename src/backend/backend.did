@@ -2,18 +2,21 @@ type EthereumAddressReply = record { ethereum_address : text };
 type ListOfAddresses = record {
   ethereum_address : text;
   received_payout : bool;
+  verified_github : bool;
+  github_link : opt text;
 };
 type Result = variant { Ok : EthereumAddressReply; Err : text };
-type Result_1 = variant { Ok : SignatureReply; Err : text };
-type Result_2 = variant { Ok : SignatureVerificationReply; Err : text };
+type Result_1 = variant { Ok : bool; Err : text };
+type Result_2 = variant { Ok : SignatureReply; Err : text };
 type SignatureReply = record { signature_hex : text };
-type SignatureVerificationReply = record { is_signature_valid : bool };
 service : {
   add_addresses : (vec ListOfAddresses) -> (vec ListOfAddresses);
   ethereum_address : () -> (Result);
   get_addresses : () -> (vec ListOfAddresses) query;
+  get_public_repo_verification : (text, text) -> (Result_1);
   is_address_listed : (text) -> (bool) query;
-  sign : (text) -> (Result_1);
-  verify : (text, text, text) -> (Result_2) query;
-  verify_claim : (text, text, text, text, text) -> (Result_2);
+  sign : (text) -> (Result_2);
+  update_addresses : (text, opt text, bool, bool) -> (vec ListOfAddresses);
+  verify_ecdsa : (text, text, text) -> (bool) query;
+  verify_signature_and_repo : (text, text, text, text, text) -> (Result_1);
 }
