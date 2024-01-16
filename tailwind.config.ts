@@ -16,7 +16,7 @@ const config: Config = {
       fontFamily: {
         'display': ['Oswald'],
         'body': ['"Open Sans"'],
-      }
+      },
     },
   },
   plugins: [require("daisyui")],

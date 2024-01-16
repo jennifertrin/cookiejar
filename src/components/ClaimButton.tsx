@@ -75,7 +75,7 @@ export default function ClaimButton({ githubLink }: ClaimButtonProps) {
     }
 
     return (
-        <button className="btn btn-info" onClick={() => claim()}>Claim from Cookie Jar</button>
+        <button className="btn btn-info px-16" onClick={() => claim()}>Claim from Cookie Jar</button>
     );
 };
 

@@ -61,21 +61,21 @@ export default function Form() {
     }
 
     return (
-        <div>
-            <div className="card w-96 bg-primary text-primary-content">
+        <div className="w-1/2 mx-auto">
+            <div className="card bg-primary text-primary-content">
                 {!address && !loadingAddress ? <div className="card-body">
                     <h2 className="card-title">Create a cookie jar</h2>
                     <p>List of addreses</p>
                     {inputValues.map((value, index) => (
-                        <div key={index}>
+                        <div className="flex flex-col gap-2" key={index}>
                             <input
                                 type="text"
                                 value={value}
                                 onChange={(e) => handleInputChange(index, e.target.value)}
                                 placeholder="Enter a value"
-                                className="input input-bordered w-full max-w-xs"
+                                className="input input-bordered w-full max-w-lg text-gray-900"
                             />
-                            <button onClick={() => handleAddRemoveInput(index, 'remove')} className="text-xs">Remove</button>
+                            <button onClick={() => handleAddRemoveInput(index, 'remove')} className="text-xs mr-auto">Remove</button>
                         </div>
                     ))}
                     <div className="card-actions justify-end">
