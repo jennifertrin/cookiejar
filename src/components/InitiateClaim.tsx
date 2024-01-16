@@ -12,9 +12,9 @@ export default function InitiateClaim({ open, setOpen }: InitiateClaimProps) {
     return (
         <div className="flex flex-col gap-4">
             {open ?
-                <div className="flex">
+                <div className="flex flex-col gap-2">
                     <span>Contribution GitHub link</span>
-                    <input type="text" placeholder="Github Link" className="input input-bordered w-full max-w-xs" onChange={(e) => setGithubLink(e.target.value)} />
+                    <input type="text" placeholder="Add your GitHub link" className="input input-bordered w-full" onChange={(e) => setGithubLink(e.target.value)} />
                 </div> :
                 <button className="btn btn-info" onClick={() => setOpen(!open)}>Initiate Claim</button>
             }

@@ -20,7 +20,7 @@ return (
         <button className="btn btn-primary" onClick={() => setOpen(!open)}>Create a Cookie Jar</button>
       </div>
     </div>
-    <div>{open ? <Form /> : null}</div>
+    <div className="w-full px-16">{open ? <Form /> : null}</div>
   </div>
 )
 }
