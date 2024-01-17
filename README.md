@@ -1,4 +1,4 @@
-# Cookie Jar 🍪
+# Cookie Jar 🍪 [WIP]
 
 This repo is an example of the "Cookie Jar" concept.
 
